@@ -1,19 +1,31 @@
+# Virtual environment
 venv/
+
+# Python cache
 __pycache__/
 *.pyc
+
+# Environment files
 .env
 
-data/03_cleaned_audio/
+# Raw / generated audio
 data/01_raw_noisy/
-
-data/02_enrollment/
+data/03_cleaned_audio/
 data/04_isolated_audio/
 
+# Enrollment audio
+data/02_enrollment/
+
+# Downloaded model weights
 models/ecapa_tdnn_weights/
+models/sepformer_weights/
 models/deepfilternet_weights/
 models/spex_plus_weights/
 models/kwt1_weights/
 
+# PyTorch model/checkpoint files
 *.pt
 *.ckpt
+
+# Audio files
 *.wav
