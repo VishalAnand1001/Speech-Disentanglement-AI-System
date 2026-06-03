@@ -30,10 +30,29 @@ def detect_custom_word(keyword):
         str(ISOLATED_AUDIO),
         beam_size=5,
         language="en",
-        vad_filter=True
+        vad_filter=True,
+        word_timestamps=True
     )
 
-    transcript = " ".join(segment.text for segment in segments).strip().lower()
+    transcript = ""
+    matches = []
+
+    for segment in segments:
+        transcript += segment.text + " "
+
+        if segment.words:
+            for word in segment.words:
+                spoken_word = word.word.strip().lower().replace(".", "").replace(",", "")
+
+                if spoken_word == keyword:
+                    matches.append({
+                        "word": spoken_word,
+                        "start": word.start,
+                        "end": word.end,
+                        "segment_text": segment.text.strip()
+                    })
+
+    transcript = transcript.strip().lower()
 
     print("\nTranscript:")
     print(transcript)
@@ -41,9 +60,19 @@ def detect_custom_word(keyword):
     print("\nKeyword:")
     print(keyword)
 
-    if keyword in transcript:
+    if matches:
         print("\nYES - Target speaker said the keyword.")
+        print("\nTimestamps:")
+
+        for match in matches:
+            print(
+                f"{match['word']} spoken from "
+                f"{match['start']:.2f}s to {match['end']:.2f}s"
+            )
+            print("Context:", match["segment_text"])
+
         return True
+
     else:
         print("\nNO - Target speaker did not say the keyword.")
         return False

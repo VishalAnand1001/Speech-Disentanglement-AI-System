@@ -22,7 +22,7 @@ if not hasattr(torch.amp, "custom_bwd"):
     torch.amp.custom_bwd = custom_bwd
 
 
-MIXED_AUDIO = Path("data/03_cleaned_audio/mixed_audio2_DeepFilterNet3_pf.wav")
+MIXED_AUDIO = Path("data/03_cleaned_audio/mixed_audio3_DeepFilterNet3_pf.wav")
 TARGET_VOICEPRINT = Path("models/ecapa_tdnn_weights/target_voiceprint.pt")
 
 ECAPA_MODEL_DIR = Path("models/ecapa_tdnn_weights")
