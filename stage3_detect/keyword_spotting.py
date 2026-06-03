@@ -1,8 +1,27 @@
 from pathlib import Path
 from faster_whisper import WhisperModel
+import difflib
+import re
 
 ISOLATED_AUDIO = Path("data/04_isolated_audio/target_speaker_isolated.wav")
 MODEL_SIZE = "small"
+
+
+def clean_word(word):
+    word = word.lower().strip()
+    word = re.sub(r"[^a-z0-9]", "", word)
+    return word
+
+
+def normalize_text(text):
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def similarity(a, b):
+    return difflib.SequenceMatcher(None, a, b).ratio()
 
 
 def detect_custom_word(keyword):
@@ -10,7 +29,7 @@ def detect_custom_word(keyword):
         print("Isolated audio not found:", ISOLATED_AUDIO)
         return False
 
-    keyword = keyword.strip().lower()
+    keyword = clean_word(keyword)
 
     if not keyword:
         print("Keyword cannot be empty.")
@@ -40,19 +59,63 @@ def detect_custom_word(keyword):
     for segment in segments:
         transcript += segment.text + " "
 
-        if segment.words:
-            for word in segment.words:
-                spoken_word = word.word.strip().lower().replace(".", "").replace(",", "")
+        if not segment.words:
+            continue
 
-                if spoken_word == keyword:
+        words = segment.words
+
+        for i in range(len(words)):
+            current_word = clean_word(words[i].word)
+
+            # Exact or fuzzy single-word match
+            if current_word == keyword or similarity(current_word, keyword) >= 0.75:
+                matches.append({
+                    "detected_as": current_word,
+                    "matched_keyword": keyword,
+                    "start": words[i].start,
+                    "end": words[i].end,
+                    "confidence": similarity(current_word, keyword),
+                    "segment_text": segment.text.strip()
+                })
+
+            # Two-word fuzzy match, example: "can nap" -> "kidnap"
+            if i < len(words) - 1:
+                word1 = clean_word(words[i].word)
+                word2 = clean_word(words[i + 1].word)
+
+                combined = word1 + word2
+                score = similarity(combined, keyword)
+
+                if score >= 0.60:
                     matches.append({
-                        "word": spoken_word,
-                        "start": word.start,
-                        "end": word.end,
+                        "detected_as": word1 + " " + word2,
+                        "matched_keyword": keyword,
+                        "start": words[i].start,
+                        "end": words[i + 1].end,
+                        "confidence": score,
                         "segment_text": segment.text.strip()
                     })
 
-    transcript = transcript.strip().lower()
+            # Three-word fuzzy match, just in case Whisper splits more badly
+            if i < len(words) - 2:
+                word1 = clean_word(words[i].word)
+                word2 = clean_word(words[i + 1].word)
+                word3 = clean_word(words[i + 2].word)
+
+                combined = word1 + word2 + word3
+                score = similarity(combined, keyword)
+
+                if score >= 0.60:
+                    matches.append({
+                        "detected_as": word1 + " " + word2 + " " + word3,
+                        "matched_keyword": keyword,
+                        "start": words[i].start,
+                        "end": words[i + 2].end,
+                        "confidence": score,
+                        "segment_text": segment.text.strip()
+                    })
+
+    transcript = normalize_text(transcript)
 
     print("\nTranscript:")
     print(transcript)
@@ -66,8 +129,9 @@ def detect_custom_word(keyword):
 
         for match in matches:
             print(
-                f"{match['word']} spoken from "
-                f"{match['start']:.2f}s to {match['end']:.2f}s"
+                f"{match['detected_as']} matched '{match['matched_keyword']}' "
+                f"from {match['start']:.2f}s to {match['end']:.2f}s "
+                f"(score: {match['confidence']:.2f})"
             )
             print("Context:", match["segment_text"])
 
