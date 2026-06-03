@@ -10,7 +10,7 @@ if not hasattr(torch.amp, "custom_fwd"):
 if not hasattr(torch.amp, "custom_bwd"):
     torch.amp.custom_bwd = lambda bwd=None, **kwargs: torch.cuda.amp.custom_bwd(bwd=bwd)
 
-ENROLLMENT_AUDIO = Path("data/02_enrollment/target.wav")
+ENROLLMENT_AUDIO = Path("data/03_cleaned_audio/input1_DeepFilterNet3_pf.wav")
 MODEL_DIR = Path("models/ecapa_tdnn_weights")
 VOICEPRINT_PATH = MODEL_DIR / "target_voiceprint.pt"
 
