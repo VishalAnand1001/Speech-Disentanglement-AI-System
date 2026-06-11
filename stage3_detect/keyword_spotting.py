@@ -27,13 +27,23 @@ def similarity(a, b):
 def detect_custom_word(keyword):
     if not ISOLATED_AUDIO.exists():
         print("Isolated audio not found:", ISOLATED_AUDIO)
-        return False
+
+        return {
+            "found": False,
+            "matches": [],
+            "error": "Isolated audio not found"
+        }
 
     keyword = clean_word(keyword)
 
     if not keyword:
         print("Keyword cannot be empty.")
-        return False
+
+        return {
+            "found": False,
+            "matches": [],
+            "error": "Keyword cannot be empty"
+        }
 
     print("Loading Whisper model...")
 
@@ -62,58 +72,22 @@ def detect_custom_word(keyword):
         if not segment.words:
             continue
 
-        words = segment.words
+        for word_info in segment.words:
 
-        for i in range(len(words)):
-            current_word = clean_word(words[i].word)
+            current_word = clean_word(word_info.word)
 
-            # Exact or fuzzy single-word match
-            if current_word == keyword or similarity(current_word, keyword) >= 0.75:
+            score = similarity(current_word, keyword)
+
+            if current_word == keyword or score >= 0.75:
+
                 matches.append({
                     "detected_as": current_word,
                     "matched_keyword": keyword,
-                    "start": words[i].start,
-                    "end": words[i].end,
-                    "confidence": similarity(current_word, keyword),
+                    "start": word_info.start,
+                    "end": word_info.end,
+                    "confidence": score,
                     "segment_text": segment.text.strip()
                 })
-
-            # Two-word fuzzy match, example: "can nap" -> "kidnap"
-            if i < len(words) - 1:
-                word1 = clean_word(words[i].word)
-                word2 = clean_word(words[i + 1].word)
-
-                combined = word1 + word2
-                score = similarity(combined, keyword)
-
-                if score >= 0.60:
-                    matches.append({
-                        "detected_as": word1 + " " + word2,
-                        "matched_keyword": keyword,
-                        "start": words[i].start,
-                        "end": words[i + 1].end,
-                        "confidence": score,
-                        "segment_text": segment.text.strip()
-                    })
-
-            # Three-word fuzzy match, just in case Whisper splits more badly
-            if i < len(words) - 2:
-                word1 = clean_word(words[i].word)
-                word2 = clean_word(words[i + 1].word)
-                word3 = clean_word(words[i + 2].word)
-
-                combined = word1 + word2 + word3
-                score = similarity(combined, keyword)
-
-                if score >= 0.60:
-                    matches.append({
-                        "detected_as": word1 + " " + word2 + " " + word3,
-                        "matched_keyword": keyword,
-                        "start": words[i].start,
-                        "end": words[i + 2].end,
-                        "confidence": score,
-                        "segment_text": segment.text.strip()
-                    })
 
     transcript = normalize_text(transcript)
 
@@ -123,25 +97,66 @@ def detect_custom_word(keyword):
     print("\nKeyword:")
     print(keyword)
 
+    # Remove Whisper duplicate detections
+
+    matches = sorted(matches, key=lambda x: x["start"])
+
+    filtered_matches = []
+
+    for match in matches:
+
+        if not filtered_matches:
+            filtered_matches.append(match)
+            continue
+
+        previous = filtered_matches[-1]
+
+        if (
+            match["detected_as"] == previous["detected_as"]
+            and abs(match["start"] - previous["start"]) < 5
+        ):
+            continue
+
+        filtered_matches.append(match)
+
+    matches = filtered_matches
+
     if matches:
+
         print("\nYES - Target speaker said the keyword.")
         print("\nTimestamps:")
 
         for match in matches:
+
             print(
                 f"{match['detected_as']} matched '{match['matched_keyword']}' "
                 f"from {match['start']:.2f}s to {match['end']:.2f}s "
                 f"(score: {match['confidence']:.2f})"
             )
+
             print("Context:", match["segment_text"])
 
-        return True
+        return {
+            "found": True,
+            "matches": matches,
+            "transcript": transcript
+        }
 
     else:
+
         print("\nNO - Target speaker did not say the keyword.")
-        return False
+
+        return {
+            "found": False,
+            "matches": [],
+            "transcript": transcript
+        }
 
 
 if __name__ == "__main__":
     user_keyword = input("Enter keyword/phrase to detect: ")
-    detect_custom_word(user_keyword)
+
+    result = detect_custom_word(user_keyword)
+
+    print("\nReturned Result:")
+    print(result)
