@@ -18,9 +18,8 @@ MIXED = RAW_DIR / "mixed_audio3.wav"
 
 @app.route("/audio")
 def get_audio():
-
     return send_file(
-        "data/04_isolated_audio/target_speaker_isolated.wav",
+        "data/03_cleaned_audio/mixed_audio3_DeepFilterNet3_pf.wav",
         mimetype="audio/wav"
     )
 
@@ -72,7 +71,7 @@ def analyze():
             "found": result["found"],
             "matches": result["matches"],
             "transcript": result.get("transcript", ""),
-            "audio_file": "target_speaker_isolated.wav"
+            "audio_file": "mixed_audio3_DeepFilterNet3_pf.wav"
         })
 
     except Exception as e:
