@@ -26,3 +26,6 @@ tqdm>=4.66.0
 
 # --- STAGE 3: CUSTOM WORD DETECTION ---
 faster-whisper>=1.0.0
+
+flask>=3.0.0
+flask-cors>=4.0.0
