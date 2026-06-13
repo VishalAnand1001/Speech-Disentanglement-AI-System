@@ -23,7 +23,10 @@ function UploadForm() {
       fd.append("mixedAudio", mixedAudio);
       fd.append("scammerAudio", scammerAudio);
       fd.append("keyword", keyword);
-      const res  = await fetch("http://127.0.0.1:5000/analyze", { method: "POST", body: fd });
+      const res = await fetch(
+          "https://speech-disentanglement-ai-system-production.up.railway.app/analyze",
+          { method: "POST", body: fd }
+      );
       const data = await res.json();
       setResult(data);
     } catch (err) {
@@ -107,7 +110,10 @@ function UploadForm() {
         {result && (
           <div className="results-body">
             <audio ref={audioRef} controls className="audio-player">
-              <source src="http://127.0.0.1:5000/audio" type="audio/wav" />
+                <source
+                  src="https://speech-disentanglement-ai-system-production.up.railway.app/audio"
+                  type="audio/wav"
+                />
             </audio>
 
             {result.matches && result.matches.length > 0 ? (
