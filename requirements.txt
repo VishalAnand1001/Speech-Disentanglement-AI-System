@@ -1,7 +1,7 @@
 # --- CORE DEEP LEARNING ENGINE ---
 # PyTorch and TorchAudio are required to run ECAPA-TDNN, SpEx+, and KWT-1
-torch>=2.2.0
-torchaudio>=2.2.0
+torch>=2.2.2
+torchaudio>=2.2.2
 
 # --- STAGE 1: NOISE SUPPRESSION ---
 # The official package for DeepFilterNet
