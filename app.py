@@ -6,6 +6,7 @@ from pathlib import Path
 from stage1_listen.noise_suppression import clean_audio
 from stage2_focus.enrollment import extract_voiceprint
 from stage2_focus.speaker_isolation import isolate_target_speaker
+from stage2_focus.confidence_gate import evaluate_isolation_confidence
 from stage3_detect.keyword_spotting import detect_custom_word
 
 app = Flask(__name__)
@@ -20,7 +21,7 @@ MIXED = RAW_DIR / "mixed_audio3.wav"
 @app.route("/audio")
 def get_audio():
     return send_file(
-        "data/03_cleaned_audio/mixed_audio3_DeepFilterNet3_pf.wav",
+        "data/04_isolated_audio/target_speaker_isolated.wav",
         mimetype="audio/wav"
     )
 
@@ -62,17 +63,40 @@ def analyze():
         extract_voiceprint()
 
         print("\n===== STAGE 2B =====")
-        isolate_target_speaker()
+        isolation_result = isolate_target_speaker()
+
+        if isolation_result is None or not isolation_result.get("success"):
+            return jsonify({
+                "success": False,
+                "error": isolation_result.get("error", "Isolation failed.") if isolation_result else "Isolation failed."
+            }), 500
+
+        print("\n===== CONFIDENCE GATE =====")
+        confidence_result = evaluate_isolation_confidence(
+            isolated_audio_path=isolation_result["output_path"],
+            target_similarity_score=isolation_result["best_similarity"]
+        )
+
+        if not confidence_result["passed"]:
+            return jsonify({
+                "success": True,
+                "confidence_gate": confidence_result,
+                "found": False,
+                "matches": [],
+                "transcript": "",
+                "warning": "Isolated speech did not pass the confidence gate. ASR was not executed."
+            })
 
         print("\n===== STAGE 3 =====")
         result = detect_custom_word(keyword)
 
         return jsonify({
             "success": True,
+            "confidence_gate": confidence_result,
             "found": result["found"],
             "matches": result["matches"],
             "transcript": result.get("transcript", ""),
-            "audio_file": "mixed_audio3_DeepFilterNet3_pf.wav"
+            "audio_file": "target_speaker_isolated.wav"
         })
 
     except Exception as e:

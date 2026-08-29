@@ -84,11 +84,11 @@ def isolate_target_speaker():
 
     if not MIXED_AUDIO.exists():
         print("Mixed audio not found:", MIXED_AUDIO)
-        return
+        return {"success": False, "error": f"Mixed audio not found: {MIXED_AUDIO}"}
 
     if not TARGET_VOICEPRINT.exists():
         print("Target voiceprint not found:", TARGET_VOICEPRINT)
-        return
+        return {"success": False, "error": f"Target voiceprint not found: {TARGET_VOICEPRINT}"}
 
     print("Loading SepFormer separation model...")
 
@@ -106,17 +106,16 @@ def isolate_target_speaker():
 
     estimated_sources = separator.separate_batch(mixed_signal)
 
-    # Expected shape: [batch, time, speakers]
     if estimated_sources.dim() != 3:
         print("Unexpected SepFormer output shape:", estimated_sources.shape)
-        return
+        return {"success": False, "error": f"Unexpected SepFormer output shape: {estimated_sources.shape}"}
 
     num_speakers = estimated_sources.shape[2]
 
     if num_speakers < 2:
         print("SepFormer did not return 2 separated sources.")
         print("Output shape:", estimated_sources.shape)
-        return
+        return {"success": False, "error": "SepFormer did not return 2 separated sources."}
 
     source_1 = estimated_sources[0, :, 0].detach().cpu().unsqueeze(0)
     source_2 = estimated_sources[0, :, 1].detach().cpu().unsqueeze(0)
@@ -176,6 +175,13 @@ def isolate_target_speaker():
     print("Target speaker isolated successfully.")
     print("Saved at:", FINAL_OUTPUT)
     print("Best similarity score:", round(best_score, 4))
+
+    return {
+        "success": True,
+        "selected_source": selected_source,
+        "best_similarity": best_score,
+        "output_path": str(FINAL_OUTPUT)
+    }
 
 
 if __name__ == "__main__":
