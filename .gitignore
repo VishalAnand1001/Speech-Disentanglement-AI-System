@@ -1,31 +1,73 @@
+# ==============================
 # Virtual environment
+# ==============================
 venv/
 
+# ==============================
 # Python cache
+# ==============================
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Environment files
+# ==============================
+# Environment / secrets
+# ==============================
 .env
+.env.*
 
+# ==============================
 # Raw / generated audio
+# ==============================
 data/01_raw_noisy/
 data/03_cleaned_audio/
 data/04_isolated_audio/
 
+# ==============================
 # Enrollment audio
+# ==============================
 data/02_enrollment/
 
+# ==============================
 # Downloaded model weights
+# ==============================
 models/ecapa_tdnn_weights/
 models/sepformer_weights/
 models/deepfilternet_weights/
 models/spex_plus_weights/
 models/kwt1_weights/
 
-# PyTorch model/checkpoint files
-*.pt
-*.ckpt
+# ==============================
+# Wav2Vec2 downloaded checkpoints
+# ==============================
+wav2vec2_checkpoints/
 
+# ==============================
+# PyTorch model/checkpoint files
+# ==============================
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# ==============================
 # Audio files
+# ==============================
 *.wav
+*.mp3
+*.flac
+*.ogg
+
+# ==============================
+# IDE
+# ==============================
+.vscode/
+.idea/
+
+# ==============================
+# OS
+# ==============================
+.DS_Store
+Thumbs.db

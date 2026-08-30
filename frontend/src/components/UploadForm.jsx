@@ -7,12 +7,16 @@ function UploadForm() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const audioRef = useRef(null);
+  const enhancedAudioRef = useRef(null);
 
   const jumpToTimestamp = (ts) => {
-    if (!audioRef.current) return;
-
-    audioRef.current.currentTime = ts;
-    audioRef.current.play();
+    if (enhancedAudioRef.current) {
+      enhancedAudioRef.current.currentTime = ts;
+      enhancedAudioRef.current.play().catch(e => console.error(e));
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = ts;
+      audioRef.current.play().catch(e => console.error(e));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -255,19 +259,20 @@ function UploadForm() {
             {/* Hide audio player and keyword matches if confidence gate failed */}
             {(!result.confidence_gate || result.confidence_gate.passed) && (
               <>
-                {/* AUDIO PLAYER */}
-                <audio
-                  ref={audioRef}
-                  controls
-                  className="audio-player"
-                >
-
-                  <source
-                    src="http://localhost:5000/audio"
-                    type="audio/wav"
-                  />
-
-                </audio>
+                {/* CLEANED MIXED AUDIO */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', opacity: 0.8 }}>CLEANED MIXED AUDIO</div>
+                  <audio
+                    ref={audioRef}
+                    controls
+                    className="audio-player"
+                  >
+                    <source
+                      src={`http://localhost:5000/clean_mixed_audio?t=${Date.now()}`}
+                      type="audio/wav"
+                    />
+                  </audio>
+                </div>
 
 
             {/* MATCHES */}
@@ -327,6 +332,30 @@ function UploadForm() {
 
                     </div>
 
+                    {match.emotion && match.emotion_status === "analyzed" && (
+                      <div className="match-card__emotion" style={{ marginTop: '12px', padding: '10px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px', opacity: 0.7, marginBottom: '4px' }}>
+                          LOCALIZED EMOTION ANALYSIS
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#60a5fa' }}>
+                            {match.emotion.label}
+                          </span>
+                          <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                            Conf: {(match.emotion.confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '4px' }}>
+                          Window: {match.emotion.window_start.toFixed(2)}s → {match.emotion.window_end.toFixed(2)}s
+                        </div>
+                      </div>
+                    )}
+
+                    {(!match.emotion && match.emotion_status === "error") && (
+                      <div className="match-card__emotion" style={{ marginTop: '12px', fontSize: '12px', color: '#fca5a5', opacity: 0.8 }}>
+                        Emotion analysis unavailable
+                      </div>
+                    )}
 
                     {match.segment_text && (
 

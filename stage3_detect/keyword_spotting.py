@@ -24,9 +24,14 @@ def similarity(a, b):
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
-def detect_custom_word(keyword):
-    if not ISOLATED_AUDIO.exists():
-        print("Isolated audio not found:", ISOLATED_AUDIO)
+def detect_custom_word(keyword, audio_path=None):
+    if audio_path is None:
+        audio_path = ISOLATED_AUDIO
+    else:
+        audio_path = Path(audio_path)
+
+    if not audio_path.exists():
+        print("Isolated audio not found:", audio_path)
 
         return {
             "found": False,
@@ -56,7 +61,7 @@ def detect_custom_word(keyword):
     print("Transcribing isolated target speaker audio...")
 
     segments, info = model.transcribe(
-        str(ISOLATED_AUDIO),
+        str(audio_path),
         beam_size=5,
         language="en",
         vad_filter=True,

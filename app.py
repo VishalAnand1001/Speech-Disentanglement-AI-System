@@ -1,4 +1,5 @@
 import os
+# pyrefly: ignore [missing-import]
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from pathlib import Path
@@ -6,8 +7,10 @@ from pathlib import Path
 from stage1_listen.noise_suppression import clean_audio
 from stage2_focus.enrollment import extract_voiceprint
 from stage2_focus.speaker_isolation import isolate_target_speaker
+from stage2_focus.audio_enhancement import enhance_target_audio
 from stage2_focus.confidence_gate import evaluate_isolation_confidence
 from stage3_detect.keyword_spotting import detect_custom_word
+from stage4_analyze.keyword_emotion import analyze_keyword_emotion
 
 app = Flask(__name__)
 CORS(app)
@@ -22,6 +25,20 @@ MIXED = RAW_DIR / "mixed_audio3.wav"
 def get_audio():
     return send_file(
         "data/04_isolated_audio/target_speaker_isolated.wav",
+        mimetype="audio/wav"
+    )
+
+@app.route("/clean_mixed_audio")
+def get_clean_mixed_audio():
+    return send_file(
+        "data/03_cleaned_audio/mixed_audio3_DeepFilterNet3_pf.wav",
+        mimetype="audio/wav"
+    )
+
+@app.route("/enhanced_audio")
+def get_enhanced_audio():
+    return send_file(
+        "data/04_isolated_audio/target_speaker_enhanced.wav",
         mimetype="audio/wav"
     )
 
@@ -71,6 +88,14 @@ def analyze():
                 "error": isolation_result.get("error", "Isolation failed.") if isolation_result else "Isolation failed."
             }), 500
 
+        print("\n===== STAGE 2C: TARGET AUDIO ENHANCEMENT =====")
+        enhanced_path = "data/04_isolated_audio/target_speaker_enhanced.wav"
+        enhancement_success = enhance_target_audio(
+            input_path=isolation_result["output_path"],
+            output_path=enhanced_path
+        )
+        final_target_audio = enhanced_path if enhancement_success else isolation_result["output_path"]
+
         print("\n===== CONFIDENCE GATE =====")
         confidence_result = evaluate_isolation_confidence(
             isolated_audio_path=isolation_result["output_path"],
@@ -88,7 +113,14 @@ def analyze():
             })
 
         print("\n===== STAGE 3 =====")
-        result = detect_custom_word(keyword)
+        result = detect_custom_word(keyword, audio_path=final_target_audio)
+        
+        if result.get("found"):
+            print("\n===== STAGE 4 (EMOTION) =====")
+            result["matches"] = analyze_keyword_emotion(
+                audio_path=final_target_audio,
+                keyword_matches=result.get("matches", [])
+            )
 
         return jsonify({
             "success": True,
@@ -96,7 +128,8 @@ def analyze():
             "found": result["found"],
             "matches": result["matches"],
             "transcript": result.get("transcript", ""),
-            "audio_file": "target_speaker_isolated.wav"
+            "audio_file": "target_speaker_isolated.wav",
+            "enhanced_audio_file": "target_speaker_enhanced.wav" if enhancement_success else "target_speaker_isolated.wav"
         })
 
     except Exception as e:

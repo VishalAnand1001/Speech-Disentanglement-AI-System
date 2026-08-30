@@ -29,3 +29,6 @@ faster-whisper>=1.0.0
 
 flask>=3.0.0
 flask-cors>=4.0.0
+
+# --- STAGE 4: EMOTION ANALYSIS ---
+transformers>=4.30.0,<4.40.0
