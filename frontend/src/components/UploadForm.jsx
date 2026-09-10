@@ -225,6 +225,46 @@ function UploadForm() {
 
           <div className="results-body">
 
+            {/* ANTI-SPOOFING UI */}
+            {result.anti_spoofing && (
+               <div className={`confidence-card ${result.anti_spoofing.classification === 'BONAFIDE' ? 'confidence-card--passed' : result.anti_spoofing.classification === 'SPOOF' ? 'confidence-card--failed' : 'confidence-card--uncertain'}`} style={{
+                padding: '16px',
+                marginBottom: '20px',
+                borderRadius: '8px',
+                backgroundColor: result.anti_spoofing.classification === 'BONAFIDE' ? 'rgba(34, 197, 94, 0.1)' : result.anti_spoofing.classification === 'SPOOF' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                border: `1px solid ${result.anti_spoofing.classification === 'BONAFIDE' ? 'rgba(34, 197, 94, 0.3)' : result.anti_spoofing.classification === 'SPOOF' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', opacity: 0.8, marginBottom: '8px' }}>
+                  ANTI-SPOOFING
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ 
+                    fontWeight: 'bold', 
+                    fontSize: '18px',
+                    color: result.anti_spoofing.classification === 'BONAFIDE' ? '#4ade80' : result.anti_spoofing.classification === 'SPOOF' ? '#f87171' : '#facc15' 
+                  }}>
+                    {result.anti_spoofing.classification === 'BONAFIDE' ? '✓ BONAFIDE' : result.anti_spoofing.classification === 'SPOOF' ? '⚠ SPOOF DETECTED' : '⚠ UNCERTAIN'}
+                  </span>
+                  
+                  {result.anti_spoofing.classification !== 'UNCERTAIN' && (
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                      Confidence: {(result.anti_spoofing.confidence * 100).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                {result.anti_spoofing.classification === 'SPOOF' && (
+                  <p style={{ marginTop: '12px', fontSize: '14px', color: '#fca5a5', lineHeight: '1.5' }}>
+                    Speaker verification and ASR were not executed.
+                  </p>
+                )}
+                {result.anti_spoofing.classification === 'UNCERTAIN' && (
+                  <p style={{ marginTop: '12px', fontSize: '14px', color: '#fde047', lineHeight: '1.5' }}>
+                    Enrollment sample could not be reliably verified.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* CONFIDENCE GATE UI */}
             {result.confidence_gate && (
               <div className={`confidence-card ${result.confidence_gate.passed ? 'confidence-card--passed' : 'confidence-card--failed'}`} style={{
@@ -256,8 +296,8 @@ function UploadForm() {
               </div>
             )}
 
-            {/* Hide audio player and keyword matches if confidence gate failed */}
-            {(!result.confidence_gate || result.confidence_gate.passed) && (
+            {/* Hide audio player and keyword matches if confidence gate failed or anti-spoofing failed */}
+            {(!result.anti_spoofing || result.anti_spoofing.classification === 'BONAFIDE') && (!result.confidence_gate || result.confidence_gate.passed) && (
               <>
                 {/* CLEANED MIXED AUDIO */}
                 <div style={{ marginBottom: '16px' }}>
