@@ -5,6 +5,7 @@ from flask_cors import CORS
 from pathlib import Path
 
 from stage1_listen.noise_suppression import clean_audio
+from stage2_focus.anti_spoofing import check_audio_spoof
 from stage2_focus.enrollment import extract_voiceprint
 from stage2_focus.speaker_isolation import isolate_target_speaker
 from stage2_focus.audio_enhancement import enhance_target_audio
@@ -76,6 +77,30 @@ def analyze():
         print("\n===== STAGE 1 =====")
         clean_audio()
 
+        print("\n===== ANTI-SPOOFING GATE =====")
+        anti_spoofing_result = check_audio_spoof(audio_path=str(INPUT1))
+
+        if not anti_spoofing_result.get("success"):
+            return jsonify({
+                "success": False,
+                "error": anti_spoofing_result.get("error", "Anti-spoofing failed.")
+            }), 500
+            
+        if anti_spoofing_result.get("classification") in ["SPOOF", "UNCERTAIN"]:
+            warning_msg = (
+                "Enrollment voice sample failed anti-spoofing verification. Speaker enrollment and downstream ASR were not executed." 
+                if anti_spoofing_result.get("classification") == "SPOOF"
+                else "Anti-spoofing confidence was inconclusive. The enrollment voice sample was not trusted."
+            )
+            return jsonify({
+                "success": True,
+                "anti_spoofing": anti_spoofing_result,
+                "found": False,
+                "matches": [],
+                "transcript": "",
+                "warning": warning_msg
+            })
+
         print("\n===== STAGE 2A =====")
         extract_voiceprint()
 
@@ -105,6 +130,7 @@ def analyze():
         if not confidence_result["passed"]:
             return jsonify({
                 "success": True,
+                "anti_spoofing": anti_spoofing_result,
                 "confidence_gate": confidence_result,
                 "found": False,
                 "matches": [],
@@ -124,6 +150,7 @@ def analyze():
 
         return jsonify({
             "success": True,
+            "anti_spoofing": anti_spoofing_result,
             "confidence_gate": confidence_result,
             "found": result["found"],
             "matches": result["matches"],
